@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="light" data-color="blue">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thai-Base64 Crypto | AES-256 No-Padding</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
+
+    <style>
+        :root {
+            --font-thai: 'Sarabun', sans-serif;
+            --font-code: 'Inter', monospace;
+            --md-shape-corner: 24px;
+            --anim-speed: 0.3s;
+        }
+
+        /* --- 1. Color Systems (Theming) --- */
+        
+        /* Default (Blue/Ocean) */
+        [data-color="blue"] {
+            --primary: #0061A4; --on-primary: #FFFFFF; --container: #D1E4FF; --on-container: #001D36;
+            --surface: #FDFCFF; --surface-c: #E1E7EC; --outline: #74777F;
+        }
+        [data-color="blue"][data-theme="dark"] {
+            --primary: #9ECAFF; --on-primary: #003258; --container: #00497D; --on-container: #D1E4FF;
+            --surface: #1A1C1E; --surface-c: #202327; --outline: #8D9199;
+        }
+
+        /* Emerald (Green) */
+        [data-color="green"] {
+            --primary: #006C4C; --on-primary: #FFFFFF; --container: #89F8C7; --on-container: #002114;
+            --surface: #FBFDF9; --surface-c: #EBF1ED; --outline: #707973;
+        }
+        [data-color="green"][data-theme="dark"] {
+            --primary: #6DDBAC; --on-primary: #003826; --container: #005138; --on-container: #89F8C7;
+            --surface: #191C1A; --surface-c: #202321; --outline: #89938C;
+        }
+
+        /* Violet (Magic) */
+        [data-color="violet"] {
+            --primary: #6750A4; --on-primary: #FFFFFF; --container: #EADDFF; --on-container: #21005D;
+            --surface: #FFFBFE; --surface-c: #F0EBF4; --outline: #79747E;
+        }
+        [data-color="violet"][data-theme="dark"] {
+            --primary: #D0BCFF; --on-primary: #381E72; --container: #4F378B; --on-container: #EADDFF;
+            --surface: #1C1B1F; --surface-c: #252329; --outline: #938F99;
+        }
+
+        /* Crimson (Secret) */
+        [data-color="red"] {
+            --primary: #B3261E; --on-primary: #FFFFFF; --container: #F9DEDC; --on-container: #410E0B;
+            --surface: #FCF8F8; --surface-c: #F4EBEB; --outline: #857373;
+        }
+        [data-color="red"][data-theme="dark"] {
+            --primary: #F2B8B5; --on-primary: #601410; --container: #8C1D18; --on-container: #F9DEDC;
+            --surface: #201A1A; --surface-c: #2B2525; --outline: #A08C8C;
+        }
+
+        /* --- Base Styles --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            background-color: var(--surface);
+            color: var(--on-container); /* ใช้ on-container เพื่อ contrast ที่ดีใน M3 */
+            font-family: var(--font-thai);
+            min-height: 100vh;
+            display: flex; flex-direction: column;
+            transition: background var(--anim-speed), color var(--anim-speed);
+        }
+
+        .app-container {
+            max-width: 1000px; margin: 0 auto; padding: 32px 24px; width: 100%;
+        }
+
+        /* --- Header & Controls --- */
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 32px; flex-wrap: wrap; gap: 20px;
+        }
+
+        .logo { display: flex; align-items: center; gap: 16px; }
+        .logo-icon {
+            width: 52px; height: 52px;
+            background: var(--container); color: var(--on-container);
+            border-radius: 16px;
+            display: grid; place-items: center; font-size: 28px;
+            transition: 0.3s;
+        }
+        .logo-text h1 { font-size: 22px; font-weight: 700; margin-bottom: 2px; color: var(--on-surface); }
+        .badge { background: var(--primary); color: var(--on-primary); font-size: 10px; padding: 2px 8px; border-radius: 6px; font-weight: 600; }
+
+        .controls {
+            display: flex; align-items: center; gap: 16px;
+            background: var(--surface-c); padding: 8px 16px; border-radius: 50px;
+        }
+
+        /* Color Picker Chips */
+        .color-picker { display: flex; gap: 8px; }
+        .color-chip {
+            width: 24px; height: 24px; border-radius: 50%; cursor: pointer;
+            border: 2px solid transparent; transition: 0.2s; position: relative;
+        }
+        .color-chip:hover { transform: scale(1.1); }
+        .color-chip.active { border-color: var(--on-container); transform: scale(1.15); }
+        
+        .bg-blue { background: #0061A4; }
+        .bg-green { background: #006C4C; }
+        .bg-violet { background: #6750A4; }
+        .bg-red { background: #B3261E; }
+
+        /* Theme Switch */
+        .theme-btn {
+            cursor: pointer; color: var(--outline); display: flex;
+            transition: 0.3s;
+        }
+        .theme-btn:hover { color: var(--primary); }
+
+        /* --- Grid Layout --- */
+        .converter-grid {
+            display: grid; gap: 24px;
+            grid-template-columns: 1fr;
+        }
+        @media(min-width: 800px) { .converter-grid { grid-template-columns: 1fr 1fr; } }
+
+        /* --- Cards --- */
+        .card {
+            background: var(--surface-c);
+            border-radius: var(--md-shape-corner);
+            padding: 28px;
+            display: flex; flex-direction: column; gap: 24px;
+            box-shadow: 0 0 0 1px rgba(0,0,0,0.03);
+            transition: 0.3s;
+        }
+        
+        .card-header { display: flex; justify-content: space-between; align-items: center; }
+        .card-title { 
+            font-size: 18px; font-weight: 600; color: var(--primary); 
+            display: flex; gap: 10px; align-items: center; 
+        }
+
+        /* --- Inputs --- */
+        label { font-size: 13px; font-weight: 600; color: var(--primary); margin-bottom: 8px; display: block; }
+        
+        textarea, input {
+            width: 100%;
+            background: color-mix(in srgb, var(--surface), var(--primary) 3%);
+            border: 1px solid transparent;
+            border-radius: 16px;
+            padding: 16px;
+            font-family: var(--font-thai); font-size: 15px;
+            color: var(--on-surface);
+            outline: none; transition: 0.2s;
+        }
+        textarea:focus, input:focus {
+            background: var(--surface);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--container);
+        }
+        textarea { min-height: 120px; line-height: 1.6; resize: vertical; }
+        textarea[readonly] { opacity: 0.8; cursor: default; }
+
+        /* --- Buttons --- */
+        .btn-row { display: flex; gap: 12px; }
+        .btn {
+            border: none; padding: 0 24px; height: 48px;
+            border-radius: 99px; cursor: pointer;
+            font-family: var(--font-thai); font-weight: 600; font-size: 15px;
+            display: flex; align-items: center; gap: 8px;
+            transition: 0.2s; flex: 1; justify-content: center;
+        }
+        .btn-primary {
+            background: var(--primary); color: var(--on-primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            flex: 2;
+        }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        
+        .btn-tonal {
+            background: transparent; border: 1px solid var(--outline); 
+            color: var(--on-surface);
+        }
+        .btn-tonal:hover { background: rgba(0,0,0,0.05); }
+
+        .btn-icon { 
+            padding: 0; width: 40px; height: 40px; border-radius: 50%; 
+            display: grid; place-items: center; background: transparent; 
+            border: none; cursor: pointer; color: var(--outline); 
+        }
+        .btn-icon:hover { background: rgba(0,0,0,0.05); color: var(--primary); }
+
+        /* Misc */
+        .loading { display: none; width: 18px; height: 18px; border: 2px solid #ffffff88; border-top-color: white; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        #snackbar {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+            background: var(--on-container); color: var(--container); 
+            padding: 12px 24px; border-radius: 99px;
+            display: flex; gap: 10px; align-items: center; opacity: 0; 
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 999;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        #snackbar.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">
+                    <span class="material-symbols-rounded">vpn_key</span>
+                </div>
+                <div class="logo-text">
+                    <h1>Thai-Base64</h1> 
+                    <span style="opacity: 0.7; display: flex; align-items: center; gap: 8px; font-size: 14px;">
+                        Kawnew Encrypt <div class="badge">V1.0 beta</div>
+                    </span>
+                </div>
+            </div>
+
+            <div class="controls">
+                <div class="color-picker">
+                    <div class="color-chip bg-blue active" onclick="setColor('blue', this)"></div>
+                    <div class="color-chip bg-green" onclick="setColor('green', this)"></div>
+                    <div class="color-chip bg-violet" onclick="setColor('violet', this)"></div>
+                    <div class="color-chip bg-red" onclick="setColor('red', this)"></div>
+                </div>
+                <div style="width: 1px; height: 20px; background: var(--outline); opacity: 0.3;"></div>
+                <div class="theme-btn" id="themeToggle">
+                    <span class="material-symbols-rounded">dark_mode</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="converter-grid">
+            <section class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="material-symbols-rounded">lock</span>
+                       Encrypt
+                    </div>
+                    <button class="btn-icon" id="copyEnc" title="คัดลอก">
+                        <span class="material-symbols-rounded">content_copy</span>
+                    </button>
+                </div>
+                
+                <div>
+                    <label>Secret Key</label>
+                    <input type="text" id="encKey" value="my-secret-key" placeholder="ตั้งรหัสผ่าน...">
+                </div>
+
+                <div>
+                    <label>Original message</label>
+                    <textarea id="plainIn" placeholder="Type the message you want to hide"></textarea>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn btn-primary" id="btnEncrypt">
+                        <span class="material-symbols-rounded">bolt</span> Encrypt
+                        <div class="loading"></div>
+                    </button>
+                    <button class="btn btn-tonal" id="btnClearEnc">Clear</button>
+                </div>
+
+                <div>
+                    <label>Kawnew Encrypt Format</label> 
+                    <textarea id="cipherOut" readonly placeholder="..."></textarea>
+                </div>
+            </section>
+
+            <section class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="material-symbols-rounded">lock_open</span>
+                        Decrypt
+                    </div>
+                    <button class="btn-icon" id="copyDec" title="คัดลอก">
+                        <span class="material-symbols-rounded">content_copy</span>
+                    </button>
+                </div>
+
+                <div>
+                    <label>Secret Key (ต้องตรงกัน)</label>
+                    <input type="text" id="decKey" value="my-secret-key" placeholder="ใส่รหัสผ่านให้ตรง...">
+                </div>
+
+                <div>
+                    <label>Encrypt Message</label>
+                    <textarea id="cipherIn" placeholder="Put the Encrypt code here...."></textarea>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn btn-primary" id="btnDecrypt">
+                        <span class="material-symbols-rounded">key</span> Decrypt
+                        <div class="loading"></div>
+                    </button>
+                    <button class="btn btn-tonal" id="btnClearDec">Clear</button>
+                </div>
+
+                <div>
+                    <label>Decrypt text</label>
+                    <textarea id="plainOut" readonly placeholder="..."></textarea>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="snackbar">
+        <span class="material-symbols-rounded">check_circle</span>
+        <span id="snackMsg">เรียบร้อย</span>
+    </div>
+
+    <script>
+        // --- THEME & COLOR SYSTEM (ไม่เปลี่ยนแปลง) ---
+        function setColor(color, element) {
+            document.documentElement.setAttribute('data-color', color);
+            document.querySelectorAll('.color-chip').forEach(c => c.classList.remove('active'));
+            element.classList.add('active');
+        }
+
+        const themeToggle = document.getElementById('themeToggle');
+        themeToggle.onclick = () => {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', next);
+            
+            themeToggle.innerHTML = next === 'light' 
+                ? '<span class="material-symbols-rounded">dark_mode</span>' 
+                : '<span class="material-symbols-rounded">light_mode</span>';
+        };
+
+        // --- CRYPTO LOGIC (AES-256 + ThaiBase64 NO PADDING) ---
+        const THAI_B64_CHARS = "กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรลวศษสหฬอฮ๐๑๒๓๔๕๖๗๘๙ะาเแโใไฤฦฯ";
+        // REMOVED: const PADDING_CHAR = '๛'; 
+        const THAI_B64_MAP = {};
+        for (let i=0; i<THAI_B64_CHARS.length; i++) THAI_B64_MAP[THAI_B64_CHARS[i]] = i;
+
+        /**
+         * แปลง Uint8Array เป็น Thai Base64 โดยไม่มี Padding ('=')
+         */
+        function bytesToThaiBase64(uint8) {
+            let output = ""; let i = 0; const len = uint8.length;
+            while (i < len) {
+                const b1 = uint8[i++]; const b2 = i < len ? uint8[i++] : NaN; const b3 = i < len ? uint8[i++] : NaN;
+                const enc1 = b1 >> 2;
+                const enc2 = ((b1 & 3) << 4) | ((b2 >> 4) & 15);
+                const enc3 = ((b2 & 15) << 2) | ((b3 >> 6) & 3);
+                const enc4 = b3 & 63;
+                
+                output += THAI_B64_CHARS.charAt(enc1) + THAI_B64_CHARS.charAt(enc2);
+                
+                // *** การแก้ไข: ลบเงื่อนไข Padding ออก ***
+                if (!isNaN(b2)) {
+                    output += THAI_B64_CHARS.charAt(enc3);
+                    if (!isNaN(b3)) {
+                        output += THAI_B64_CHARS.charAt(enc4);
+                    }
+                }
+            }
+            return output;
+        }
+
+        /**
+         * แปลง Thai Base64 (ที่ไม่มี Padding) กลับเป็น Uint8Array
+         */
+        function thaiBase64ToBytes(input) {
+            // REMOVED: .replace(new RegExp(PADDING_CHAR, 'g'), '')
+            input = input.replace(/\s+/g, ''); 
+            const len = input.length; const bytes = [];
+            
+            for (let i = 0; i < len; i += 4) {
+                const c1 = THAI_B64_MAP[input.charAt(i)]; const c2 = THAI_B64_MAP[input.charAt(i+1)];
+                // ใช้ length check แทนการตรวจ PADDING_CHAR
+                const c3 = i+2 < len ? THAI_B64_MAP[input.charAt(i+2)] : null;
+                const c4 = i+3 < len ? THAI_B64_MAP[input.charAt(i+3)] : null;
+                
+                if (c1 === undefined || c2 === undefined) throw new Error("Invalid Char");
+                
+                bytes.push((c1 << 2) | (c2 >> 4));
+
+                if (c3 !== null) {
+                    bytes.push(((c2 & 15) << 4) | (c3 >> 2));
+                    if (c4 !== null) bytes.push(((c3 & 3) << 6) | c4);
+                }
+                // ถ้า c3 เป็น null (คือ Base64 มี 2 ตัว) จะหยุดที่ byte ที่ 1
+                // ถ้า c4 เป็น null (คือ Base64 มี 3 ตัว) จะหยุดที่ byte ที่ 2
+            }
+            return new Uint8Array(bytes);
+        }
+
+        // --- CORE AES-GCM (ไม่เปลี่ยนแปลง) ---
+        const SALT_LEN = 16; const IV_LEN = 12;
+        async function getKeyMaterial(p) { return window.crypto.subtle.importKey("raw", new TextEncoder().encode(p), {name: "PBKDF2"}, false, ["deriveKey"]); }
+        async function deriveKey(km, s) { return window.crypto.subtle.deriveKey({name: "PBKDF2", salt: s, iterations: 100000, hash: "SHA-256"}, km, {name: "AES-GCM", length: 256}, false, ["encrypt", "decrypt"]); }
+
+        async function encrypt(txt, pass) {
+            const salt = crypto.getRandomValues(new Uint8Array(SALT_LEN));
+            const iv = crypto.getRandomValues(new Uint8Array(IV_LEN));
+            const key = await deriveKey(await getKeyMaterial(pass), salt);
+            const cipher = await crypto.subtle.encrypt({name: "AES-GCM", iv: iv}, key, new TextEncoder().encode(txt));
+            const pack = new Uint8Array(SALT_LEN + IV_LEN + cipher.byteLength);
+            pack.set(salt,0); pack.set(iv, SALT_LEN); pack.set(new Uint8Array(cipher), SALT_LEN+IV_LEN);
+            return bytesToThaiBase64(pack);
+        }
+
+        /**
+         * ฟังก์ชันDecrypt (รองรับการดึงข้อความ Base64 ออกจากฟอร์แมต Kawnew)
+         */
+        async function decrypt(txt, pass) {
+            let rawCiphertext = txt.trim();
+
+            // *** การแก้ไข: ดึงข้อความEncryptจริงออกจากฟอร์แมต Kawnew ***
+            if (rawCiphertext.startsWith('Kawnew')) {
+                const match = rawCiphertext.match(/\{([\s\S]*?)\}/);
+                if (match && match[1]) {
+                    rawCiphertext = match[1].trim(); 
+                } else {
+                    // ถ้าฟอร์แมตผิด แต่มี Kawnew ให้ถือว่าข้อความทั้งหมดอาจเป็น cipher ที่ผิด
+                    // ปล่อยให้ thaiBase64ToBytes ตรวจจับ Error เอง
+                }
+            }
+            // ******************************************************
+            
+            const packed = thaiBase64ToBytes(rawCiphertext); // ใช้ rawCiphertext
+            const salt = packed.slice(0, SALT_LEN); const iv = packed.slice(SALT_LEN, SALT_LEN + IV_LEN);
+            const data = packed.slice(SALT_LEN + IV_LEN);
+            const key = await deriveKey(await getKeyMaterial(pass), salt);
+            return new TextDecoder().decode(await crypto.subtle.decrypt({name: "AES-GCM", iv: iv}, key, data));
+        }
+
+        // --- UI EVENTS (ปรับส่วน Encrypt/Decrypt) ---
+        const $ = id => document.getElementById(id);
+        const showSnack = (msg, err=false) => {
+            const s = $('snackbar'); $('snackMsg').innerText = msg;
+            s.style.background = err ? 'var(--primary)' : 'var(--on-container)';
+            s.style.color = err ? 'var(--on-primary)' : 'var(--container)';
+            s.classList.add('show'); setTimeout(()=>s.classList.remove('show'), 3000);
+        };
+
+        $('btnEncrypt').onclick = async () => {
+            const btn = $('btnEncrypt'); const spin = btn.querySelector('.loading');
+            try { btn.disabled=true; spin.style.display='block'; 
+                const rawCipher = await encrypt($('plainIn').value, $('encKey').value);
+
+                // *** การแก้ไข: จัดรูปแบบผลลัพธ์ตามที่ต้องการ ***
+                const formattedRes = `Kawnew — Encrypt ThaiCodeing\n{\n${rawCipher}\n}\nEnd of Kawnew Encrypt`;
+                
+                $('cipherOut').value = formattedRes; 
+                $('cipherIn').value = formattedRes; // ส่งฟอร์แมตไปช่อง Decrypt
+                $('decKey').value = $('encKey').value;
+                showSnack('Encryptเรียบร้อย'); 
+            } catch(e) { showSnack('Error: '+e.message, true); } 
+            finally { btn.disabled=false; spin.style.display='none'; }
+        };
+
+        $('btnDecrypt').onclick = async () => {
+            const btn = $('btnDecrypt'); const spin = btn.querySelector('.loading');
+            try { btn.disabled=true; spin.style.display='block'; 
+                $('plainOut').value = await decrypt($('cipherIn').value, $('decKey').value);
+                showSnack('Decryptเรียบร้อย'); 
+            } catch(e) { $('plainOut').value = ""; showSnack('Decryptไม่ได้ (รหัสผิด/ข้อมูลเสีย)', true); }
+            finally { btn.disabled=false; spin.style.display='none'; }
+        };
+
+        // UI Handlers (ไม่เปลี่ยนแปลง)
+        $('btnClearEnc').onclick = () => { $('plainIn').value=''; $('cipherOut').value=''; };
+        $('btnClearDec').onclick = () => { $('cipherIn').value=''; $('plainOut').value=''; };
+        $('copyEnc').onclick = () => { navigator.clipboard.writeText($('cipherOut').value); showSnack('คัดลอกแล้ว'); };
+        $('copyDec').onclick = () => { navigator.clipboard.writeText($('plainOut').value); showSnack('คัดลอกแล้ว'); };
+
+    </script>
+</body>
+</html>
