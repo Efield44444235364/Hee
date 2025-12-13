@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title></title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Sarabun:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        :root {
+            /* --- MD3 Color Tokens (Blue/Violet Theme) --- */
+            --md-sys-color-primary: #385E9D;
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #D8E2FF;
+            --md-sys-color-on-primary-container: #001A41;
+            
+            --md-sys-color-secondary: #575E71;
+            --md-sys-color-secondary-container: #DBE2F9;
+            
+            --md-sys-color-surface: #FDFBFF;
+            --md-sys-color-surface-container: #F0F4FA;
+            --md-sys-color-surface-container-high: #E8EDF4;
+            
+            --md-sys-color-outline: #74777F;
+            --md-sys-color-outline-variant: #C4C6D0;
+            
+            --md-sys-color-on-surface: #1A1B1F;
+            --md-sys-color-on-surface-variant: #44474F;
+
+            --shape-corner-xl: 28px;
+            --shape-corner-m: 16px;
+            --shape-corner-full: 9999px;
+            
+            --motion-duration-short: 200ms;
+            --motion-duration-medium: 400ms;
+            --motion-easing: cubic-bezier(0.2, 0.0, 0, 1.0);
+        }
+
+        [data-theme="dark"] {
+            --md-sys-color-primary: #AFC6FF;
+            --md-sys-color-on-primary: #002D6C;
+            --md-sys-color-primary-container: #194484;
+            --md-sys-color-on-primary-container: #D8E2FF;
+            
+            --md-sys-color-surface: #111318;
+            --md-sys-color-surface-container: #1E2229;
+            --md-sys-color-surface-container-high: #282D35;
+            
+            --md-sys-color-on-surface: #E2E2E6;
+            --md-sys-color-on-surface-variant: #C4C6D0;
+            --md-sys-color-outline: #8E9099;
+            --md-sys-color-outline-variant: #44474F;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            background-color: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            font-family: 'Sarabun', sans-serif;
+            min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center;
+            transition: background-color var(--motion-duration-medium);
+            overflow-x: hidden;
+        }
+
+        /* --- Layout --- */
+        .app-layout {
+            width: 100%; max-width: 680px;
+            padding: 24px;
+            display: flex; flex-direction: column; gap: 24px;
+        }
+
+        /* --- Header --- */
+        header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 4px;
+        }
+        .headline {
+            font-family: 'Google Sans', sans-serif;
+            font-size: 24px; font-weight: 500;
+            color: var(--md-sys-color-on-surface);
+        }
+        .icon-btn {
+            width: 48px; height: 48px; border-radius: 50%; border: none;
+            background: transparent; color: var(--md-sys-color-on-surface-variant);
+            cursor: pointer; display: grid; place-items: center;
+            transition: background var(--motion-duration-short);
+        }
+        .icon-btn:hover { background: var(--md-sys-color-surface-container-high); color: var(--md-sys-color-on-surface); }
+        .icon-btn:active { transform: scale(0.95); }
+
+        /* --- Segmented Button (Tabs) --- */
+        .tabs-container {
+            background: var(--md-sys-color-surface-container-high);
+            border-radius: var(--shape-corner-full);
+            padding: 4px; display: flex; position: relative;
+            border: 1px solid var(--md-sys-color-outline-variant);
+        }
+        .tab {
+            flex: 1; border: none; background: transparent;
+            padding: 10px 0; border-radius: var(--shape-corner-full);
+            color: var(--md-sys-color-on-surface-variant);
+            font-family: 'Google Sans', sans-serif; font-weight: 500; font-size: 14px;
+            cursor: pointer; z-index: 2; position: relative;
+            transition: color var(--motion-duration-short);
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .tab.active { color: var(--md-sys-color-on-primary-container); }
+        .tab-indicator {
+            position: absolute; top: 4px; left: 4px; bottom: 4px;
+            width: calc(50% - 4px); background: var(--md-sys-color-primary-container);
+            border-radius: var(--shape-corner-full); z-index: 1;
+            transition: transform var(--motion-duration-medium) var(--motion-easing);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+
+        /* --- Main Content Area --- */
+        .content-wrapper { position: relative; overflow: hidden; min-height: 500px; }
+        .view-section {
+            position: absolute; top: 0; left: 0; width: 100%;
+            opacity: 0; pointer-events: none; transform: translateY(20px) scale(0.98);
+            transition: all var(--motion-duration-medium) var(--motion-easing);
+            display: flex; flex-direction: column; gap: 24px;
+        }
+        .view-section.active {
+            opacity: 1; pointer-events: auto; transform: translateY(0) scale(1); position: relative;
+        }
+
+        /* --- Cards & Inputs --- */
+        .card {
+            background: var(--md-sys-color-surface-container);
+            border-radius: var(--shape-corner-xl);
+            padding: 24px;
+            display: flex; flex-direction: column; gap: 20px;
+        }
+
+        .input-field { position: relative; margin-top: 8px; }
+        .input-field input, .input-field textarea {
+            width: 100%; background: transparent;
+            border: 1px solid var(--md-sys-color-outline);
+            border-radius: 4px; padding: 16px 16px;
+            font-family: 'Sarabun', sans-serif; font-size: 16px;
+            color: var(--md-sys-color-on-surface);
+            transition: 0.2s; border-radius: var(--shape-corner-m);
+        }
+        .input-field textarea { min-height: 120px; resize: none; line-height: 1.5; }
+        .input-field input:focus, .input-field textarea:focus {
+            border-color: var(--md-sys-color-primary);
+            border-width: 2px; padding: 15px 15px;
+            outline: none;
+        }
+        .input-label {
+            position: absolute; top: -10px; left: 12px;
+            background: var(--md-sys-color-surface-container);
+            padding: 0 4px; font-size: 12px; color: var(--md-sys-color-primary);
+            font-weight: 600; font-family: 'Google Sans', sans-serif;
+        }
+        
+        /* --- COPY Button for Text Area --- */
+        .textarea-wrapper { position: relative; }
+        .copy-btn {
+            position: absolute; top: 2px; right: 2px;
+            width: 40px; height: 40px; border-radius: 50%; border: none;
+            background: transparent; color: var(--md-sys-color-on-surface-variant);
+            cursor: pointer; display: grid; place-items: center;
+            transition: background var(--motion-duration-short), color var(--motion-duration-short);
+            z-index: 10;
+        }
+        .copy-btn:hover { background: var(--md-sys-color-surface-container-high); color: var(--md-sys-color-on-surface); }
+        .copy-btn:active { transform: scale(0.95); }
+
+
+        /* --- Upload Zone (Beautiful) --- */
+        .upload-area {
+            border: 2px dashed var(--md-sys-color-outline-variant);
+            border-radius: var(--shape-corner-xl);
+            padding: 40px 20px; text-align: center;
+            cursor: pointer; transition: 0.3s;
+            background: var(--md-sys-color-surface);
+            display: flex; flex-direction: column; align-items: center; gap: 12px;
+        }
+        .upload-area:hover, .upload-area.dragover {
+            border-color: var(--md-sys-color-primary);
+            background: var(--md-sys-color-primary-container);
+        }
+        .upload-icon {
+            font-size: 48px; color: var(--md-sys-color-primary);
+            margin-bottom: 8px;
+        }
+        .upload-text { font-size: 16px; font-weight: 500; }
+        .upload-sub { font-size: 12px; color: var(--md-sys-color-secondary); }
+
+        /* --- File List --- */
+        .file-stack { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+        .file-chip {
+            background: var(--md-sys-color-surface);
+            padding: 12px 16px; border-radius: 12px;
+            display: flex; align-items: center; gap: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            animation: slideIn 0.3s cubic-bezier(0.2, 0, 0, 1);
+        }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- Buttons --- */
+        .btn-group { display: flex; gap: 12px; margin-top: 8px; }
+        .btn {
+            flex: 1; height: 56px; border-radius: var(--shape-corner-full);
+            border: none; cursor: pointer;
+            font-family: 'Google Sans', sans-serif; font-size: 16px; font-weight: 500;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: all 0.2s; position: relative; overflow: hidden;
+        }
+        .btn-filled {
+            background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .btn-filled:hover { box-shadow: 0 6px 12px rgba(0,0,0,0.15); filter: brightness(1.1); }
+        .btn-tonal {
+            background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-primary-container);
+        }
+        .btn-tonal:hover { filter: brightness(0.95); }
+        
+        /* Spinner */
+        .spinner {
+            width: 20px; height: 20px; border: 2.5px solid currentColor;
+            border-bottom-color: transparent; border-radius: 50%;
+            display: none; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .btn.loading .text-content { display: none; }
+        .btn.loading .spinner { display: block; }
+
+        /* Disclaimer */
+        .note { font-size: 12px; color: var(--md-sys-color-secondary); margin-top: 12px; text-align: center; opacity: 0.8; }
+        
+        /* ----------------------- */
+        /* --- PROGRESS UI CSS --- */
+        /* ----------------------- */
+        .progress-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            display: none; /* Hidden by default */
+            place-items: center;
+            transition: opacity var(--motion-duration-short);
+            opacity: 0;
+        }
+        .progress-overlay.show {
+            display: grid;
+            opacity: 1;
+        }
+
+        .progress-card {
+            background: var(--md-sys-color-surface-container-high);
+            border-radius: var(--shape-corner-xl);
+            padding: 32px;
+            width: 90%; max-width: 400px;
+            display: flex; flex-direction: column; gap: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transform: scale(0.95);
+            transition: transform var(--motion-duration-medium) var(--motion-easing);
+        }
+        .progress-overlay.show .progress-card {
+            transform: scale(1);
+        }
+
+        .progress-title {
+            font-family: 'Google Sans', sans-serif;
+            font-size: 18px; font-weight: 500;
+            text-align: center;
+        }
+
+        .progress-bar-container {
+            height: 12px;
+            background: var(--md-sys-color-surface-container);
+            border-radius: var(--shape-corner-full);
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: var(--md-sys-color-primary);
+            border-radius: var(--shape-corner-full);
+            transition: width 0.3s cubic-bezier(0.2, 0.0, 0, 1.0); /* Smooth animation */
+        }
+
+        .progress-percentage {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--md-sys-color-primary);
+            text-align: right;
+        }
+
+        .progress-filename {
+            font-size: 12px;
+            color: var(--md-sys-color-on-surface-variant);
+            text-align: center;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="app-layout">
+        <header>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span class="material-symbols-rounded" style="color: var(--md-sys-color-primary); font-size: 32px;">verified_user</span>
+                <span class="headline">Encrypt by kawnew</span>
+            </div>
+            <button class="icon-btn" id="themeToggle">
+                <span class="material-symbols-rounded">dark_mode</span>
+            </button>
+        </header>
+
+        <div class="tabs-container">
+            <div class="tab-indicator" id="tabIndicator"></div>
+            <button class="tab active" onclick="setTab(0)">
+                <span class="material-symbols-rounded">text_fields</span> Text
+            </button>
+            <button class="tab" onclick="setTab(1)">
+                <span class="material-symbols-rounded">folder_zip</span> File
+            </button>
+        </div>
+
+        <div class="content-wrapper">
+            
+            <section class="view-section active" id="viewText">
+                <div class="card">
+                    <div class="input-field">
+                        <label class="input-label">SECRET CODE</label>
+                        <input type="text" id="textKey" placeholder="ตั้งรหัสผ่านของคุณ...">
+                    </div>
+                    
+                    <div class="textarea-wrapper">
+                        <div class="input-field">
+                            <label class="input-label">MESSAGE</label>
+                            <textarea id="textContent" placeholder="พิมพ์ข้อความที่นี่..."></textarea>
+                        </div>
+                        <button class="icon-btn copy-btn" id="copyTextBtn" style="display: none;">
+                            <span class="material-symbols-rounded">content_copy</span>
+                        </button>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-filled" id="btnTextEnc" onclick="processText('enc')">
+                            <span class="text-content">Encrypt</span>
+                            <span class="spinner"></span>
+                        </button>
+                        <button class="btn btn-tonal" id="btnTextDec" onclick="processText('dec')">
+                            <span class="text-content">Decrypt</span>
+                            <span class="spinner"></span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="view-section" id="viewFile">
+                <div class="card">
+                    <div class="input-field">
+                        <label class="input-label">SECRET CODE</label>
+                        <input type="text" id="fileKey" placeholder="รหัสนี้จะไปอยู่ในชื่อไฟล์...">
+                    </div>
+
+                    <div class="upload-area" id="dropZone">
+                        <input type="file" id="fileInput" multiple hidden>
+                        <span class="material-symbols-rounded upload-icon">cloud_upload</span>
+                        <div class="upload-text">แตะเพื่อเลือกไฟล์ หรือลากมาวาง</div>
+                        <div class="upload-sub">ระบบจะเข้ารหัสไฟล์ทุกตัวใน Zip</div>
+                    </div>
+                    
+                    <div class="file-stack" id="fileList"></div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-filled" id="btnFileEnc" onclick="processFile('enc')">
+                            <span class="text-content">Encrypt</span>
+                            <div class="spinner"></div>
+                        </button>
+                        <button class="btn btn-tonal" id="btnFileDec" onclick="processFile('dec')">
+                            <span class="text-content">Decrypt </span>
+                            <div class="spinner"></div>
+                        </button>
+                    </div>
+                    <div class="note">
+                        Output: [Filename]_Encrypt_[Code]
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+    
+    <div class="progress-overlay" id="progressOverlay">
+        <div class="progress-card">
+            <div class="progress-title" id="progressTitle">กำลังเตรียมการ...</div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="progress-percentage" id="progressPercentage">0%</div>
+            <div class="progress-filename" id="progressFilename"></div>
+        </div>
+    </div>
+    <script>
+        // --- CONFIG & UTILS ---
+        const $ = id => document.getElementById(id);
+        const SALT_LEN = 16;
+        const IV_LEN = 12;
+        // กำหนดเกณฑ์: แสดง UI Progress เมื่อขนาดไฟล์รวมเกิน 200MB (200 * 1024 * 1024 bytes)
+        const PROGRESS_THRESHOLD = 200 * 1024 * 1024; 
+        
+        // รองรับไฟล์ข้อความที่หลากหลาย
+        const TEXT_EXTENSIONS = ['txt', 'lua', 'luau', 'html', 'js', 'css', 'json', 'xml', 'md', 'log', 'sh', 'py', 'php', 'h', 'c', 'cpp', 'java'];
+        // เปลี่ยน ENCRYPT_HEADER ให้สอดคล้องกับรูปแบบที่คุณต้องการ
+        const ENCRYPT_HEADER = 'Encrypt by Kawnew\n\n';
+        const DECRYPT_HEADER = 'Decrypt success by Kawnew\n\n';
+        
+        function isTextFile(filename) {
+            const parts = filename.toLowerCase().split('.');
+            return parts.length > 1 && TEXT_EXTENSIONS.includes(parts.pop());
+        }
+
+        // --- PROGRESS UI HANDLERS ---
+        function showProgressUI(title, filename = '') {
+            $('progressOverlay').classList.add('show');
+            $('progressTitle').textContent = title;
+            $('progressFilename').textContent = filename;
+            updateProgress(0);
+        }
+
+        function hideProgressUI() {
+            $('progressOverlay').classList.remove('show');
+        }
+
+        function updateProgress(percentage, filename = '') {
+            const p = Math.min(100, Math.max(0, Math.round(percentage)));
+            $('progressBar').style.width = p + '%';
+            $('progressPercentage').textContent = p + '%';
+            if (filename) {
+                $('progressFilename').textContent = filename;
+            }
+        }
+        // --- END PROGRESS UI HANDLERS ---
+
+        // --- ERROR HANDLING & UI ---
+        function setButtonLoading(btn, isLoading, mode) {
+            btn.classList.toggle('loading', isLoading);
+            btn.disabled = isLoading;
+            if (!isLoading) {
+                const extension = (mode === 'enc' ? '.kawnew' : '.kawnew');
+                // อัปเดตข้อความปุ่มในโหมด File (ถ้ามี)
+                if (btn.id === 'btnFileEnc' || btn.id === 'btnFileDec') {
+                    btn.querySelector('.text-content').textContent = (mode === 'enc' ? 'Encrypt to ' : 'Decrypt ') + extension;
+                } else {
+                    // อัปเดตข้อความปุ่มในโหมด Text
+                    btn.querySelector('.text-content').textContent = (mode === 'enc' ? 'Encrypt' : 'Decrypt');
+                }
+            }
+        }
+
+        function handleCryptoError(e) {
+            let msg = 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ';
+            if (e.name === 'OperationError' || (e.message && e.message.includes('data length is invalid'))) {
+                msg = 'รหัสผ่านผิดพลาด หรือข้อมูลถูกแก้ไข/เสียหาย';
+            } else if (e.message.includes('Invalid Kawnew Text Format')) {
+                msg = 'ไม่พบหัวข้อ Kawnew ในไฟล์ข้อความ (อาจจะยังไม่ได้เข้ารหัส)';
+            } else if (e.message.includes('Already Encrypted')) { // ข้อความที่เพิ่มเข้ามาสำหรับการเข้ารหัสซ้ำ
+                msg = 'ข้อความนี้ถูกเข้ารหัสแล้ว ไม่จำเป็นต้องเข้ารหัสซ้ำ';
+            } else if (e.message.includes('Invalid key length')) {
+                msg = 'กุญแจเข้ารหัส (Key) มีปัญหา';
+            } else if (e.message.includes('Wrong file extension')) {
+                msg = 'กรุณาเลือกไฟล์ที่ถูกต้อง ( หรือ .txt)';
+            } else if (e.message.includes('Inner File Decryption Failed: Invalid character')) {
+                 msg = 'ไฟล์ข้อความภายในเสียหาย หรือรหัสผ่านผิดพลาด';
+            } else {
+                console.error("Uncaught Crypto Error:", e);
+                msg = 'ข้อผิดพลาดทางเทคนิค: ' + (e.message ? e.message.substring(0, 50) : e.toString());
+            }
+            alert(`⛔ Error: ${msg}`);
+        }
+
+        // --- CORE CRYPTO HELPERS (Binary/String) ---
+        async function getKey(pass, salt) {
+            const k = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), {name:"PBKDF2"}, false, ["deriveKey"]);
+            return crypto.subtle.deriveKey({name:"PBKDF2", salt, iterations:100000, hash:"SHA-256"}, k, {name:"AES-GCM", length:256}, false, ["encrypt","decrypt"]);
+        }
+
+        async function encryptBinary(dataArrayBuffer, password) {
+            try {
+                const salt = crypto.getRandomValues(new Uint8Array(SALT_LEN));
+                const iv = crypto.getRandomValues(new Uint8Array(IV_LEN));
+                const key = await getKey(password, salt);
+                const encrypted = await crypto.subtle.encrypt({name:"AES-GCM", iv}, key, dataArrayBuffer);
+                const pack = new Uint8Array(SALT_LEN + IV_LEN + encrypted.byteLength);
+                pack.set(salt, 0); pack.set(iv, SALT_LEN); pack.set(new Uint8Array(encrypted), SALT_LEN + IV_LEN);
+                return pack.buffer; // Return packed ArrayBuffer
+            } catch (e) {
+                throw new Error("Encryption Failed: " + e.message);
+            }
+        }
+
+        async function decryptBinary(packedArrayBuffer, password) {
+            try {
+                if (packedArrayBuffer.byteLength < SALT_LEN + IV_LEN) throw new Error("data length is invalid");
+                const packed = new Uint8Array(packedArrayBuffer);
+                const salt = packed.slice(0, SALT_LEN);
+                const iv = packed.slice(SALT_LEN, SALT_LEN + IV_LEN);
+                const data = packed.slice(SALT_LEN + IV_LEN);
+                const key = await getKey(password, salt);
+                return await crypto.subtle.decrypt({name:"AES-GCM", iv}, key, data);
+            } catch (e) {
+                throw e; 
+            }
+        }
+
+        // *** FIX: Add a safe buffer-to-string conversion function to prevent stack overflow ***
+        function safeBufferToBinaryString(buffer) {
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            // ใช้ขนาด chunk ที่ปลอดภัย (16KB) เพื่อหลีกเลี่ยงการเกินขีดจำกัด Argument ของ .apply()
+            const chunkSize = 16384; 
+            for (let i = 0; i < bytes.byteLength; i += chunkSize) {
+                const chunk = bytes.subarray(i, i + chunkSize);
+                binary += String.fromCharCode.apply(null, chunk);
+            }
+            return binary;
+        }
+
+        // --- TEXT FILE HANDLERS (B64 wrapped) ---
+        async function encryptTextToB64(text, password) {
+            const buffer = await encryptBinary(new TextEncoder().encode(text).buffer, password);
+            // แก้ไข: ใช้ safeBufferToBinaryString แทน String.fromCharCode.apply โดยตรง
+            return btoa(safeBufferToBinaryString(buffer));
+        }
+
+        async function decryptB64ToText(base64Packed, password) {
+            try {
+                const binaryString = atob(base64Packed);
+                const packed = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) packed[i] = binaryString.charCodeAt(i);
+                
+                const decryptedBuffer = await decryptBinary(packed.buffer, password);
+                return new TextDecoder().decode(decryptedBuffer);
+            } catch (e) {
+                throw new Error("Inner File Decryption Failed: " + e.message);
+            }
+        }
+
+        function unwrapEncryptedText(fullText) {
+            const start = fullText.indexOf(ENCRYPT_HEADER);
+            const end = fullText.lastIndexOf('\n\n'); 
+            if (start === -1 || end === -1 || start > end) throw new Error("Invalid Kawnew Text Format");
+            
+            const coreContent = fullText.substring(start + ENCRYPT_HEADER.length, end);
+            if (!coreContent.trim()) throw new Error("Empty encrypted content");
+            
+            return coreContent.replace(/\s/g, ''); 
+        }
+
+        function extractBaseNameAndExt(filename) {
+            const parts = filename.split('.');
+            if (parts.length === 1) return { base: filename, ext: '' };
+            const ext = parts.pop();
+            return { base: parts.join('.'), ext: ext };
+        }
+
+        // --- FILE MAIN PROCESSOR (มี Progress UI) ---
+        async function processFile(mode) {
+            const pass = $('fileKey').value;
+            if(!pass) return alert('กรุณาใส่รหัสผ่าน');
+            if(currentFiles.length === 0) return alert('กรุณาเลือกไฟล์');
+
+            const btn = mode==='enc'?$('btnFileEnc'):$('btnFileDec');
+            setButtonLoading(btn, true, mode);
+
+            // ตรวจสอบขนาดไฟล์รวมเพื่อเปิด Progress UI
+            const totalSize = currentFiles.reduce((sum, file) => sum + file.size, 0);
+            const useProgress = totalSize >= PROGRESS_THRESHOLD;
+
+            if (useProgress) {
+                showProgressUI(mode === 'enc' ? 'กำลังเข้ารหัส (Encrypting)' : 'กำลังถอดรหัส (Decrypting)', 'กำลังเตรียมข้อมูล...');
+            }
+
+            try {
+                if(mode === 'enc') {
+                    // --- ENCRYPTION (Nested) ---
+                    const zipToEncrypt = new JSZip();
+
+                    // 1. ตรวจสอบไฟล์ทุกตัวและทำการเข้ารหัสภายใน
+                    // NOTE: ขั้นตอนนี้ใช้เวลาน้อยกว่าการ generate zip สำหรับไฟล์ขนาดใหญ่
+                    if (useProgress) updateProgress(5, 'กำลังเข้ารหัสไฟล์ภายใน...');
+                    
+                    for (const file of currentFiles) {
+                        if (useProgress) $('progressFilename').textContent = `เข้ารหัส: ${file.name}`;
+                        
+                        const originalName = file.name;
+                        
+                        if (isTextFile(originalName)) {
+                            const content = await file.text();
+                            const encryptedB64 = await encryptTextToB64(content, pass);
+                            const wrappedText = `${ENCRYPT_HEADER}${encryptedB64}\n\n`;
+                            zipToEncrypt.file(originalName, wrappedText);
+                        } else {
+                            const content = await file.arrayBuffer();
+                            const encryptedBinary = await encryptBinary(content, pass);
+                            zipToEncrypt.file(originalName, encryptedBinary);
+                        }
+                    }
+                    if (useProgress) updateProgress(10, 'กำลังบีบอัดและเข้ารหัส ZIP...');
+
+                    // 2. Encrypt the entire ZIP structure (ใช้ Progress callback)
+                    const zipBuffer = await zipToEncrypt.generateAsync({
+                        type:"arraybuffer",
+                        compression: "DEFLATE",
+                        compressionOptions: { level: 1 },
+                        onUpdate: (metadata) => {
+                            if (useProgress) {
+                                // 10% สำหรับการประมวลผลภายใน, 90% สำหรับการสร้าง ZIP
+                                const overallProgress = 10 + (metadata.percent * 0.9);
+                                updateProgress(overallProgress, `บีบอัด: ${metadata.currentFile || 'โครงสร้างหลัก'}`);
+                            }
+                        }
+                    });
+
+                    // 3. Encrypt the final binary
+                    if (useProgress) updateProgress(99, 'กำลังเข้ารหัสชั้นสุดท้าย...');
+                    const finalEncryptedZip = await encryptBinary(zipBuffer, pass);
+                    
+                    // 4. Download
+                    const originalNameForOutput = currentFiles.length === 1 ? extractBaseNameAndExt(currentFiles[0].name).base : "Multiple_Files";
+                    const finalName = `${originalNameForOutput}_Encrypt_${pass}.kawnew`;
+                    
+                    downloadBlob(finalName, new Blob([finalEncryptedZip]));
+
+                } else {
+                    // --- DECRYPTION (Nested) ---
+                    const file = currentFiles[0];
+                    const fileName = file.name.toLowerCase();
+                    
+                    if (!fileName.endsWith('.kawnew') && !fileName.endsWith('.kawnew.txt')) {
+                        throw new Error("Wrong file extension");
+                    }
+                    
+                    // 1. Decrypt the outer ZIP layer (Reading binary ArrayBuffer)
+                    if (useProgress) updateProgress(5, 'กำลังถอดรหัสชั้นนอกสุด...');
+                    const packedZipBuffer = await file.arrayBuffer();
+                    const decryptedZipBuffer = await decryptBinary(packedZipBuffer, pass);
+                    
+                    // 2. Unzip and Process Contents (ใช้ Progress callback)
+                    if (useProgress) updateProgress(10, 'กำลังแตกไฟล์ ZIP...');
+                    const zipToDecrypt = await JSZip.loadAsync(decryptedZipBuffer, {
+                        onUpdate: (metadata) => {
+                            if (useProgress) {
+                                // 10% สำหรับการถอดรหัสชั้นนอก, 80% สำหรับการแตกไฟล์, 10% สำหรับการถอดรหัสภายใน
+                                const overallProgress = 10 + (metadata.percent * 0.8);
+                                updateProgress(overallProgress, `แตกไฟล์: ${metadata.currentFile || 'โครงสร้างหลัก'}`);
+                            }
+                        }
+                    });
+                    
+                    const filesInZip = Object.keys(zipToDecrypt.files).filter(name => !zipToDecrypt.files[name].dir);
+                    const decryptedOutputs = [];
+
+                    // 2.1 Decrypt ทุกไฟล์ภายใน
+                    if (useProgress) updateProgress(90, 'กำลังถอดรหัสไฟล์ภายใน...');
+                    const processPromises = filesInZip.map(async (filename) => {
+                        let decryptedContent;
+                        let outputBlob;
+                        const { base, ext } = extractBaseNameAndExt(filename);
+                        
+                        try {
+                            if (isTextFile(filename)) {
+                                const content = await zipToDecrypt.files[filename].async("text"); 
+                                const coreB64 = unwrapEncryptedText(content);
+                                const decryptedText = await decryptB64ToText(coreB64, pass);
+                                
+                                const wrappedDecrypted = `${DECRYPT_HEADER}${decryptedText}\n\n`;
+                                decryptedContent = wrappedDecrypted;
+                                outputBlob = new Blob([decryptedContent], {type: 'text/plain'});
+                            } else {
+                                const contentBuffer = await zipToDecrypt.files[filename].async("arraybuffer");
+                                decryptedContent = await decryptBinary(contentBuffer, pass);
+                                outputBlob = new Blob([decryptedContent]);
+                            }
+
+                            decryptedOutputs.push({
+                                name: `${base}_Decrypt_${pass}.${ext}`,
+                                blob: outputBlob,
+                                isText: isTextFile(filename)
+                            });
+
+                        } catch (e) {
+                            const errorMsg = `Decryption Error in ${filename}: ${e.message}`;
+                            const errorBlob = new Blob([errorMsg], {type: 'text/plain'});
+                            decryptedOutputs.push({
+                                name: `${base}_DECRYPT_FAILED.txt`,
+                                blob: errorBlob,
+                                isText: true
+                            });
+                        }
+                    });
+
+                    await Promise.all(processPromises);
+                    if (useProgress) updateProgress(95, 'กำลังสร้างไฟล์ผลลัพธ์...');
+
+                    // 3. จัดการการดาวน์โหลดผลลัพธ์
+                    if (filesInZip.length === 1 && decryptedOutputs.length === 1 && decryptedOutputs[0].isText) {
+                        downloadBlob(decryptedOutputs[0].name, decryptedOutputs[0].blob);
+                    
+                    } else {
+                        const zipToOutput = new JSZip();
+                        decryptedOutputs.forEach(item => {
+                            let originalName = item.name.replace(`_Decrypt_${pass}`, '');
+                            if (item.name.endsWith('_DECRYPT_FAILED.txt')) {
+                                originalName = item.name;
+                            } else {
+                                const baseName = originalName.substring(0, originalName.lastIndexOf('.'));
+                                const extName = originalName.substring(originalName.lastIndexOf('.') + 1);
+                                originalName = baseName + '.' + extName;
+                            }
+                            zipToOutput.file(originalName, item.blob);
+                        });
+
+                        const finalZipBuffer = await zipToOutput.generateAsync({type:"arraybuffer"});
+                        
+                        let outNameBase = file.name;
+                        if (outNameBase.endsWith('.kawnew.txt')) {
+                            outNameBase = outNameBase.slice(0, -11); 
+                        } else if (outNameBase.endsWith('.kawnew')) {
+                            outNameBase = outNameBase.slice(0, -7); 
+                        }
+                        outNameBase = outNameBase.replace('_Encrypt_', '_Decrypt_').split('_Decrypt_')[0];
+
+                        const finalOutName = `${outNameBase}_Decrypt_${pass}.zip`;
+                        
+                        downloadBlob(finalOutName, new Blob([finalZipBuffer]));
+                    }
+                }
+
+            } catch(e) {
+                handleCryptoError(e);
+            } finally {
+                if (useProgress) {
+                    hideProgressUI();
+                }
+                setButtonLoading(btn, false, mode);
+            }
+        }
+
+        // --- UI & TABS LOGIC (Kept for completeness) ---
+        let currentFiles = [];
+        
+        function setTab(index) {
+            const indicator = $('tabIndicator');
+            const tabs = document.querySelectorAll('.tab');
+            const views = document.querySelectorAll('.view-section');
+            indicator.style.transform = `translateX(${index * 100}%)`;
+            tabs.forEach(t => t.classList.remove('active'));
+            tabs[index].classList.add('active');
+            views.forEach(v => v.classList.remove('active'));
+            views[index].classList.add('active');
+            
+            $('copyTextBtn').style.display = index === 0 && $('textContent').value.trim() ? 'grid' : 'none';
+        }
+
+        $('themeToggle').onclick = () => {
+            const html = document.documentElement;
+            const isDark = html.getAttribute('data-theme') === 'dark';
+            html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+            $('themeToggle').innerHTML = isDark ? 
+                '<span class="material-symbols-rounded">dark_mode</span>' : 
+                '<span class="material-symbols-rounded">light_mode</span>';
+        };
+
+        const dropZone = $('dropZone');
+        const fileInput = $('fileInput');
+
+        dropZone.onclick = () => fileInput.click();
+        dropZone.ondragover = e => { e.preventDefault(); dropZone.classList.add('dragover'); };
+        dropZone.ondragleave = () => dropZone.classList.remove('dragover');
+        dropZone.ondrop = e => { 
+            e.preventDefault(); dropZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        };
+        fileInput.onchange = () => handleFiles(fileInput.files);
+
+        function handleFiles(files) {
+            currentFiles = Array.from(files);
+            renderFiles();
+        }
+
+        function renderFiles() {
+            const list = $('fileList');
+            list.innerHTML = '';
+            currentFiles.forEach(f => {
+                const div = document.createElement('div');
+                div.className = 'file-chip';
+                div.innerHTML = `
+                    <span class="material-symbols-rounded" style="color:var(--md-sys-color-primary)">description</span>
+                    <div style="flex:1; overflow:hidden;">
+                        <div style="font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${f.name}</div>
+                        <div style="font-size:12px; opacity:0.7;">${(f.size/1024).toFixed(1)} KB</div>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+        
+        async function processText(mode) {
+            const txtArea = $('textContent');
+            const txt = txtArea.value;
+            const pass = $('textKey').value;
+            const btn = mode === 'enc' ? $('btnTextEnc') : $('btnTextDec');
+            const copyBtn = $('copyTextBtn');
+
+            if(!pass) return alert('กรุณาใส่รหัสผ่าน');
+            if(!txt.trim()) return;
+
+            setButtonLoading(btn, true, mode);
+            copyBtn.style.display = 'none'; 
+
+            try {
+                if(mode === 'enc') {
+                    if (txt.includes(ENCRYPT_HEADER)) {
+                        throw new Error("Already Encrypted");
+                    }
+                    
+                    const encryptedB64 = await encryptTextToB64(txt, pass);
+                    txtArea.value = `${ENCRYPT_HEADER}${encryptedB64}\n\n`;
+                    copyBtn.style.display = 'grid'; 
+                } else {
+                    const coreB64 = unwrapEncryptedText(txt);
+                    const decryptedText = await decryptB64ToText(coreB64, pass);
+                    
+                    txtArea.value = `${DECRYPT_HEADER}${decryptedText}\n\n`;
+                    copyBtn.style.display = 'grid'; 
+                }
+            } catch(e) { 
+                handleCryptoError(e); 
+                copyBtn.style.display = 'none';
+            } finally {
+                setButtonLoading(btn, false, mode);
+            }
+        }
+        
+        $('copyTextBtn').onclick = async () => {
+            const txtArea = $('textContent');
+            try {
+                await navigator.clipboard.writeText(txtArea.value);
+                $('copyTextBtn').querySelector('.material-symbols-rounded').textContent = 'check';
+                setTimeout(() => {
+                    $('copyTextBtn').querySelector('.material-symbols-rounded').textContent = 'content_copy';
+                }, 1000);
+            } catch (err) {
+                txtArea.select();
+                document.execCommand('copy');
+                alert('คัดลอกข้อความแล้ว!');
+            }
+        };
+        
+        $('textContent').oninput = () => {
+            const txtArea = $('textContent');
+            const copyBtn = $('copyTextBtn');
+            copyBtn.style.display = txtArea.value.trim() ? 'grid' : 'none';
+        };
+
+
+        // Helper: Downloads
+        function downloadBlob(filename, blob) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = filename;
+            document.body.appendChild(a); a.click(); URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
