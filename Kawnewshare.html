@@ -1,0 +1,688 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>QuickTap Share (Light Edition)</title>
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Rounded" rel="stylesheet">
+    
+    <!-- PeerJS -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
+    <style>
+        /* --- DESIGN SYSTEM: Material 3 Pink Light --- */
+        :root {
+            /* Pink/Rose Light Theme */
+            --md-sys-color-primary: #984061; /* Vibrant Deep Pink */
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #FFD9E2; /* Light Pink Container */
+            --md-sys-color-on-primary-container: #3E001D;
+            
+            --md-sys-color-surface: #FFF8F8; /* White with tiny pink tint */
+            --md-sys-color-surface-container: #F2E3E7; /* Soft contrast for cards */
+            
+            --md-sys-color-outline: #857377;
+            --md-sys-color-on-surface: #201A1B; /* Dark Text */
+            --md-sys-color-on-surface-variant: #524347; /* Grey Text */
+            
+            --md-sys-color-error: #BA1A1A;
+            --md-sys-color-error-container: #FFDAD6;
+            --md-sys-color-success: #2E6C00; /* Darker Green for visibility on light */
+            --md-sys-color-success-bg: #D7F7C3;
+
+            /* Animation Curves (Do Not Touch) */
+            --ease-elastic: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            --ease-standard: cubic-bezier(0.2, 0.0, 0, 1.0);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            font-family: 'Google Sans', 'Prompt', sans-serif;
+            background-color: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            height: 100vh; overflow: hidden;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+
+        /* --- STATE 1: RADAR / CONNECTION UI --- */
+        .scan-container {
+            position: relative;
+            display: flex; flex-direction: column; align-items: center;
+            width: 100%; max-width: 450px; /* Limit width for PC */
+            padding: 20px;
+            transition: opacity 0.4s var(--ease-standard);
+        }
+
+        /* Radar Waves */
+        .radar-box {
+            position: relative; width: 260px; height: 260px;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 30px;
+        }
+        .radar-wave {
+            position: absolute; border-radius: 50%;
+            border: 2px solid var(--md-sys-color-primary);
+            box-shadow: 0 0 15px rgba(152, 64, 97, 0.4); /* Adjusted for Light Mode visibility */
+            opacity: 0;
+            width: 100%; height: 100%;
+            animation: ripple 3s infinite cubic-bezier(0, 0.2, 0.8, 1);
+        }
+        .radar-wave:nth-child(2) { animation-delay: 1s; }
+        .radar-wave:nth-child(3) { animation-delay: 2s; }
+
+        @keyframes ripple {
+            0% { transform: scale(0.5); opacity: 0; border-width: 4px; }
+            50% { opacity: 0.3; }
+            100% { transform: scale(1.4); opacity: 0; border-width: 0; }
+        }
+
+        /* Center Icon */
+        .scan-icon-wrapper {
+            width: 110px; height: 110px;
+            background: var(--md-sys-color-primary);
+            border-radius: 40%;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 10;
+            box-shadow: 0 10px 25px rgba(152, 64, 97, 0.3);
+            transition: transform 0.3s var(--ease-elastic);
+            cursor: pointer;
+        }
+        .scan-icon-wrapper:active { transform: scale(0.9); }
+        .scan-icon-wrapper .material-symbols-rounded {
+            font-size: 56px; color: var(--md-sys-color-on-primary);
+            animation: pulse-icon 2s infinite ease-in-out;
+        }
+        @keyframes pulse-icon { 0%,100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+        /* Status & Inputs */
+        .status-box { text-align: center; width: 100%; z-index: 20; }
+        .title-text { font-size: 24px; font-weight: 600; margin-bottom: 8px; color: var(--md-sys-color-on-surface); }
+        
+        .nfc-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 16px; border-radius: 20px;
+            font-size: 13px; font-weight: 500;
+            background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container);
+            margin-bottom: 20px; transition: all 0.3s;
+        }
+        .nfc-badge.warning { background: var(--md-sys-color-error-container); color: var(--md-sys-color-error); }
+        .nfc-badge.success { background: var(--md-sys-color-success-bg); color: var(--md-sys-color-success); }
+
+        /* Unified ID Input */
+        .id-group {
+            position: relative; margin-top: 10px; width: 100%;
+        }
+        .manual-input {
+            width: 100%; background: #FFFFFF; /* Pure White input */
+            border: 2px solid var(--md-sys-color-surface-container); outline: none;
+            padding: 18px; border-radius: 24px;
+            color: var(--md-sys-color-on-surface);
+            font-family: 'Prompt', monospace; font-size: 18px; text-align: center; letter-spacing: 2px; font-weight: 600;
+            transition: border 0.3s, box-shadow 0.3s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+        }
+        .manual-input:focus { border-color: var(--md-sys-color-primary); box-shadow: 0 4px 15px rgba(152, 64, 97, 0.15); }
+        .manual-input::placeholder { color: var(--md-sys-color-on-surface-variant); opacity: 0.4; letter-spacing: 0; font-weight: 400;}
+
+        /* Copyable MY ID */
+        .my-id-chip {
+            margin-top: 24px;
+            padding: 10px 20px; background: #FFFFFF;
+            border: 1px solid var(--md-sys-color-outline);
+            border-radius: 50px; font-size: 14px; font-weight: 600;
+            color: var(--md-sys-color-on-surface-variant);
+            cursor: pointer; transition: all 0.2s;
+            display: inline-block;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .my-id-chip:active { background: var(--md-sys-color-primary-container); border-color: transparent; color: var(--md-sys-color-on-primary-container); }
+
+        /* --- STATE 2: TRANSFER PANEL (Slide Up) --- */
+        .transfer-panel {
+            position: fixed; inset: 0;
+            background: #FFFFFF; /* Clean white background */
+            display: flex; flex-direction: column;
+            transform: translateY(110%);
+            transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            z-index: 100; padding: 24px;
+            /* PC Friendly Constraints */
+            max-width: 600px;
+            margin: 0 auto;
+            border-radius: 24px 24px 0 0;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.1);
+        }
+        /* Mobile: Full Screen, PC: Modal-like */
+        @media (min-width: 601px) {
+            .transfer-panel {
+                top: 50px; bottom: 0; 
+                height: auto;
+                border-radius: 24px 24px 0 0;
+            }
+        }
+        .transfer-panel.active { transform: translateY(0); }
+
+        /* Header */
+        .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+        .peer-avatar {
+            width: 50px; height: 50px; border-radius: 50%;
+            background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; font-weight: bold; margin-right: 14px;
+            box-shadow: 0 4px 10px rgba(152, 64, 97, 0.2);
+        }
+        .btn-close { 
+            background: var(--md-sys-color-surface-container); 
+            border: none; border-radius: 50%;
+            color: var(--md-sys-color-on-surface); 
+            cursor: pointer; width: 40px; height: 40px; 
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.2s;
+        }
+        .btn-close:hover { background: #E0CFD3; }
+
+        /* File List Area */
+        .file-container { flex: 1; overflow-y: auto; padding-bottom: 90px; }
+        
+        /* Card with Wavy Progress */
+        .file-card {
+            background: var(--md-sys-color-surface-container);
+            border-radius: 20px; padding: 16px;
+            display: flex; align-items: center; gap: 16px;
+            margin-bottom: 12px; overflow: hidden; position: relative;
+            animation: slideIn 0.3s var(--ease-standard);
+        }
+        
+        /* THE MAGIC WAVY ICON */
+        .wavy-icon-box {
+            width: 54px; height: 54px; 
+            border-radius: 16px; overflow: hidden;
+            background: #FFFFFF; /* White bg for icon */
+            position: relative; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: inset 0 0 4px rgba(0,0,0,0.05);
+        }
+        
+        /* The Wave Fluid - UPDATED SVG COLOR TO MATCH LIGHT THEME */
+        .wave-fill {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            height: 0%;
+            background: var(--md-sys-color-primary);
+            transition: height 0.2s linear;
+            z-index: 1;
+        }
+        .wave-fill::after {
+            content: ''; position: absolute; top: -10px; left: 0; width: 200%; height: 20px;
+            /* Updated fill color to #984061 (URL Encoded: %23984061) */
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z' fill='%23984061'/%3E%3C/svg%3E");
+            background-size: 50% 100%;
+            animation: wave-anim 2s linear infinite;
+        }
+        
+        .wavy-icon-symbol { 
+            position: relative; z-index: 2; font-size: 26px; 
+            color: var(--md-sys-color-on-surface); opacity: 0.6; mix-blend-mode: multiply; 
+        }
+        /* When filled, change icon color to white for contrast against dark pink */
+        .wavy-icon-box.completed .wavy-icon-symbol { color: white; opacity: 1; mix-blend-mode: normal; }
+        
+        .completed .wave-fill { height: 100% !important; background: var(--md-sys-color-success); }
+        .completed .wave-fill::after { display: none; }
+        
+        @keyframes wave-anim { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+        .file-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+        .file-name { font-size: 16px; color: var(--md-sys-color-on-surface); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .file-stat { font-size: 13px; color: var(--md-sys-color-on-surface-variant); margin-top: 4px; font-weight: 500; }
+        
+        /* Drop Area */
+        .fab-upload {
+            position: absolute; bottom: 32px; right: 32px;
+            width: 70px; height: 70px; border-radius: 24px;
+            background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary);
+            box-shadow: 0 8px 20px rgba(152, 64, 97, 0.4);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; z-index: 200;
+        }
+        .fab-upload:hover { transform: scale(1.05); }
+        .fab-upload:active { transform: scale(0.95); }
+
+        @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* Notification */
+        .toast {
+            position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%) translateY(20px);
+            background: #201A1B; color: #fff; /* High contrast dark toast */
+            padding: 12px 24px; border-radius: 50px; font-size: 14px; opacity: 0; transition: 0.3s cubic-bezier(0.2, 0.0, 0, 1.0);
+            pointer-events: none; z-index: 500; font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            width: max-content; max-width: 90%; text-align: center;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    </style>
+</head>
+<body>
+
+    <!-- SECTION 1: SCAN & CONNECT -->
+    <div id="scanView" class="scan-container">
+        
+        <div class="radar-box">
+            <div class="radar-wave"></div>
+            <div class="radar-wave"></div>
+            
+            <div class="scan-icon-wrapper" onclick="startScanManually()">
+                <span class="material-symbols-rounded">tap_and_play</span>
+            </div>
+        </div>
+
+        <div class="status-box">
+            <div class="title-text">Tap to Connect</div>
+            
+            <div id="nfcStatusBadge" class="nfc-badge">
+                <span class="material-symbols-rounded" style="font-size:18px">nfc</span>
+                <span>Checking NFC...</span>
+            </div>
+
+            <!-- Single Input for ID -->
+            <div class="id-group">
+                <input type="text" id="targetIdInput" class="manual-input" placeholder="ENTER ID" maxlength="6">
+            </div>
+
+            <div class="my-id-chip" onclick="copyMyId()">
+                MY ID: <span id="displayId">...</span> <span class="material-symbols-rounded" style="font-size:14px; vertical-align:middle; margin-left:6px">content_copy</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- SECTION 2: TRANSFER & TEST MODE -->
+    <div id="transferView" class="transfer-panel">
+        <div class="panel-header">
+            <div style="display:flex; align-items:center;">
+                <div class="peer-avatar" id="peerAvatar">T</div>
+                <div>
+                    <div style="font-weight:700; font-size:18px; color:var(--md-sys-color-on-surface);">Connected</div>
+                    <div style="font-size:13px; opacity:0.7; font-family:monospace; color:var(--md-sys-color-on-surface-variant);" id="peerNameDisplay">ID: ----</div>
+                </div>
+            </div>
+            <button class="btn-close" onclick="disconnect()">
+                <span class="material-symbols-rounded">close</span>
+            </button>
+        </div>
+
+        <div class="file-container" id="fileList">
+            <!-- Files will populate here -->
+        </div>
+
+        <!-- File Input hidden, triggered by FAB -->
+        <input type="file" id="filePicker" hidden multiple>
+        <div class="fab-upload" onclick="document.getElementById('filePicker').click()">
+            <span class="material-symbols-rounded" style="font-size:36px">add</span>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Msg</div>
+
+    <script>
+        // --- 1. CONFIG & UTILS ---
+        const CHUNK_SIZE = 64 * 1024;
+        const $ = id => document.getElementById(id);
+        const toast = (msg) => {
+            const t = $('toast'); t.innerText = msg; t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        };
+
+        let peer, conn, myId;
+        let incomingFiles = {}; 
+        let isNfcActive = false;
+        let nfcReader = null;
+
+        // --- 2. PEER INITIALIZATION ---
+        function initApp() {
+            const randomId = Math.floor(Math.random() * 900000 + 100000).toString();
+            peer = new Peer(randomId, { debug: 1 });
+
+            peer.on('open', (id) => {
+                myId = id;
+                $('displayId').innerText = id;
+                // Initiate NFC check immediately
+                checkNfcAvailability();
+            });
+
+            peer.on('connection', (c) => handleConnection(c));
+            
+            peer.on('error', err => {
+                console.error(err);
+                if(err.type === 'peer-unavailable') toast("User not found. Check ID.");
+            });
+
+            $('targetIdInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') connect(e.target.value);
+            });
+        }
+
+        // --- 3. CONNECTION LOGIC ---
+        function connect(target) {
+            target = target.trim();
+            if(!target || target === myId) return;
+
+            if(target.toLowerCase() === "test") {
+                startTestMode();
+                return;
+            }
+
+            $('targetIdInput').blur();
+            toast(`Connecting to ${target}...`);
+            const c = peer.connect(target);
+            handleConnection(c);
+        }
+
+        function handleConnection(connection) {
+            conn = connection;
+            conn.on('open', () => {
+                enterTransferMode(connection.peer);
+            });
+            conn.on('data', processData);
+            conn.on('close', disconnect);
+            conn.on('error', () => { toast("Connection Lost"); disconnect(); });
+        }
+
+        function enterTransferMode(peerId) {
+            $('scanView').style.opacity = '0';
+            setTimeout(() => {
+                $('scanView').style.display = 'none';
+                $('transferView').classList.add('active');
+                $('peerNameDisplay').innerText = `ID: ${peerId}`;
+                $('peerAvatar').innerText = peerId.substring(0,1).toUpperCase();
+            }, 400);
+        }
+
+        // --- 4. NFC LOGIC (FIXED) ---
+        async function checkNfcAvailability() {
+            if (!("NDEFReader" in window)) {
+                setNfcBadge("error", "No NFC HW", "mobile_off");
+                return;
+            }
+
+            // Chrome Android often returns "prompt" even if enabled.
+            // The best way is to try and construct the reader.
+            try {
+                // If we already have permission, this will start automatically.
+                // If not, it might throw, or require a gesture.
+                const permissionStatus = await navigator.permissions.query({ name: "nfc" });
+                
+                if (permissionStatus.state === "granted") {
+                    activateNFC();
+                } else {
+                    // It is "prompt" or "denied". 
+                    // We assume hardware exists but needs activation via tap.
+                    setNfcBadge("warning", "Tap Icon to Enable NFC", "touch_app");
+                }
+            } catch (error) {
+                // Fallback: If query fails, assume we need manual activation
+                setNfcBadge("warning", "Tap Icon to Enable NFC", "touch_app");
+            }
+        }
+
+        async function activateNFC() {
+            if(isNfcActive) return;
+
+            try {
+                // Instantiating NDEFReader. If NFC is OFF in system settings,
+                // scan() usually throws NotAllowedError or NotSupportedError immediately.
+                nfcReader = new NDEFReader();
+                
+                await nfcReader.scan();
+                
+                // If we pass await scan(), NFC is ON and listening.
+                isNfcActive = true;
+                setNfcBadge("success", "Ready to Tap", "nfc");
+
+                nfcReader.onreading = event => {
+                    const decoder = new TextDecoder();
+                    for (const record of event.message.records) {
+                        if(record.recordType === "text") {
+                            const id = decoder.decode(record.data);
+                            if(id !== myId) {
+                                navigator.vibrate?.([50, 50]);
+                                $('targetIdInput').value = id;
+                                connect(id);
+                            }
+                        }
+                    }
+                };
+                
+                // Write functionality
+                nfcReader.write({ records: [{ recordType: "text", data: myId }] }).catch(err => {
+                    console.log("Write failed (screen might be locked):", err);
+                });
+
+            } catch (error) {
+                console.warn("NFC Error:", error);
+                isNfcActive = false;
+                
+                if (error.name === "NotAllowedError") {
+                    setNfcBadge("error", "NFC Permission Denied", "do_not_disturb_on");
+                    toast("Please allow NFC permission in settings.");
+                } else if (error.name === "NotSupportedError") {
+                    setNfcBadge("error", "NFC Not Supported", "mobile_off");
+                } else {
+                    // Usually implies NFC is disabled in System Quick Settings
+                    setNfcBadge("warning", "Turn on NFC in Settings", "settings_alert");
+                }
+            }
+        }
+
+        // Triggered by the big icon
+        window.startScanManually = () => {
+            if (!isNfcActive) {
+                activateNFC();
+            } else {
+                $('targetIdInput').focus();
+            }
+        };
+
+        function setNfcBadge(state, text, iconName) {
+            const el = $('nfcStatusBadge');
+            const icon = el.querySelector('span:first-child');
+            const txt = el.querySelector('span:last-child');
+            
+            // Reset classes
+            el.className = 'nfc-badge';
+            
+            if(state === 'success') el.classList.add('success');
+            if(state === 'warning') el.classList.add('warning');
+            if(state === 'error') el.classList.add('warning'); // Use warning colors for error too, simpler
+
+            icon.innerText = iconName;
+            txt.innerText = text;
+        }
+
+        // --- 5. FILE TRANSFER (SAME LOGIC) ---
+        $('filePicker').addEventListener('change', (e) => {
+            const files = e.target.files;
+            if(!files.length) return;
+            Array.from(files).forEach(sendFile);
+        });
+
+        async function sendFile(file) {
+            if(!conn) return;
+
+            const fileId = Math.random().toString(36).substr(2, 6);
+            addFileCard(fileId, file.name, file.size, 'upload');
+
+            conn.send({
+                type: 'header', id: fileId, name: file.name, size: file.size, mime: file.type
+            });
+
+            let offset = 0;
+            const reader = new FileReader();
+
+            const readSlice = (o) => {
+                const slice = file.slice(o, o + CHUNK_SIZE);
+                reader.readAsArrayBuffer(slice);
+            };
+
+            reader.onload = async (e) => {
+                if(!conn) return;
+                
+                conn.send({
+                    type: 'chunk', id: fileId, data: e.target.result
+                });
+
+                offset += CHUNK_SIZE;
+                
+                const percent = Math.min((offset / file.size) * 100, 100);
+                updateWave(fileId, percent);
+
+                if(offset < file.size) {
+                    if(offset % (CHUNK_SIZE * 5) === 0) await new Promise(r => setTimeout(r, 0));
+                    readSlice(offset);
+                } else {
+                    conn.send({ type: 'end', id: fileId });
+                    finishFile(fileId);
+                }
+            };
+
+            readSlice(0);
+        }
+
+        function processData(data) {
+            if(data.type === 'header') {
+                incomingFiles[data.id] = { meta: data, buffer: [], received: 0 };
+                addFileCard(data.id, data.name, data.size, 'download');
+            }
+            else if(data.type === 'chunk') {
+                const f = incomingFiles[data.id];
+                if(f) {
+                    f.buffer.push(data.data);
+                    f.received += data.data.byteLength;
+                    const percent = (f.received / f.meta.size) * 100;
+                    updateWave(data.id, percent);
+                }
+            }
+            else if(data.type === 'end') {
+                const f = incomingFiles[data.id];
+                if(f) {
+                    const blob = new Blob(f.buffer, { type: f.meta.mime });
+                    const url = URL.createObjectURL(blob);
+                    finishFile(data.id, url, f.meta.name);
+                    delete incomingFiles[data.id];
+                }
+            }
+        }
+
+        // --- 6. UI RENDERERS ---
+        function addFileCard(id, name, size, type) {
+            const sizeStr = (size/1024/1024).toFixed(1) + " MB";
+            const icon = type === 'upload' ? 'arrow_upward' : 'arrow_downward';
+            
+            const html = `
+                <div class="file-card" id="card-${id}">
+                    <div class="wavy-icon-box" id="wave-box-${id}">
+                        <div class="wave-fill" id="wave-${id}"></div>
+                        <span class="material-symbols-rounded wavy-icon-symbol">${icon}</span>
+                    </div>
+                    <div class="file-info">
+                        <div class="file-name">${name}</div>
+                        <div class="file-stat" id="stat-${id}">0% • ${sizeStr}</div>
+                    </div>
+                </div>
+            `;
+            $('fileList').insertAdjacentHTML('afterbegin', html);
+        }
+
+        function updateWave(id, percent) {
+            requestAnimationFrame(() => {
+                const el = $(`wave-${id}`);
+                const txt = $(`stat-${id}`);
+                if(el) el.style.height = percent + "%";
+                if(txt) txt.innerText = Math.floor(percent) + "% Sending...";
+            });
+        }
+
+        function finishFile(id, url = null, name = null) {
+            const card = $(`card-${id}`);
+            const waveBox = $(`wave-box-${id}`);
+            const txt = $(`stat-${id}`);
+            if(!card) return;
+
+            waveBox.classList.add('completed');
+            
+            if (url) {
+                txt.innerText = "Completed • Tap to Open";
+                txt.style.color = "var(--md-sys-color-success)";
+                card.style.cursor = "pointer";
+                card.onclick = () => {
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = name;
+                    a.click();
+                };
+            } else {
+                txt.innerText = "Sent Successfully";
+                txt.style.color = "var(--md-sys-color-success)";
+            }
+        }
+
+        function copyMyId() {
+            navigator.clipboard.writeText(myId);
+            toast("ID Copied!");
+        }
+
+        function disconnect() {
+            if(conn) conn.close();
+            conn = null;
+            $('scanView').style.display = 'flex';
+            setTimeout(() => {
+                $('scanView').style.opacity = '1';
+                $('transferView').classList.remove('active');
+                $('fileList').innerHTML = '';
+            }, 50);
+        }
+
+        function startTestMode() {
+            enterTransferMode("TestBot-01");
+            const mockConn = {
+                send: () => {},
+                close: () => {},
+                on: (evt, cb) => { if(evt==='data') mockConn.trigger = cb; }
+            };
+            conn = mockConn;
+            
+            setTimeout(() => {
+                const totalSize = 1024 * 1024 * 50;
+                const fileId = "test-video";
+                processData({ type: 'header', id: fileId, name: "Cute_Cat.mp4", size: totalSize, mime: 'video/mp4' });
+
+                let sent = 0;
+                const chunkVal = 1024 * 1024;
+                
+                const sendSimChunk = () => {
+                    if(!conn) return;
+                    sent += chunkVal;
+                    processData({ type: 'chunk', id: fileId, data: new ArrayBuffer(100) });
+                    const p = Math.min((sent / totalSize) * 100, 100);
+                    updateWave(fileId, p);
+
+                    if(sent < totalSize) {
+                        setTimeout(sendSimChunk, 100);
+                    } else {
+                        finishFile(fileId, "#", "Cute_Cat.mp4");
+                    }
+                };
+                sendSimChunk();
+            }, 1000);
+        }
+
+        initApp();
+
+    </script>
+</body>
+</html>
